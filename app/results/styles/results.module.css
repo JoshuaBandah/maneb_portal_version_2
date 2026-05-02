@@ -1,0 +1,295 @@
+/* app/results/style/results.module.css */
+
+.container {
+  min-height: 100vh;
+  background: #fff;
+  padding: 40px 20px;
+}
+
+.header {
+  text-align: center;
+  color: white;
+  margin-bottom: 40px;
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+.header p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+.searchCard {
+  margin: 0 auto;
+  background: white;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.548);
+  padding: 30px 10px;
+  width: 70vw;
+  height: 400px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transform: translateY(50px);
+  align-items: center;
+}
+
+.formGroup {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.formGroup label {
+  font-weight:lighter;
+  color: #333;
+  font-size: 12px;
+}
+
+.formGroup input {
+  padding: 6px;
+  border: 1px solid #b6b6b6;
+  border-radius: 2px;
+  font-size: 12px;
+  transition: border-color 0.3s;
+  width: 200px;
+}
+
+.formGroup input:focus {
+  outline: none;
+  border-color: rgb(201, 201, 201);
+}
+
+.button {
+  background:rgb(9, 148, 9);
+  color: white;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: lighter;
+  cursor: pointer;
+  transition: transform 0.2s;
+  width: 100px;
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.error {
+  background: rgb(190, 0, 0);
+  color: rgb(255, 255, 255);
+  padding: 5px;
+  border-radius: 8px;transform: translateY(60px);
+  text-align: center;
+  width: 70px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.info {
+  max-width: 500px;
+  margin: 20px auto 0;
+  text-align: center;
+  color: white;
+  font-size: 0.9rem;
+}
+
+/* Results Display Styles */
+.resultsContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  padding: 30px 250px;
+}
+
+.backButton {
+  background: rgb(9, 148, 9);
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  margin-bottom: 20px;
+  font-size: 14px;
+  border-radius: 5px;
+}
+
+.backButton:hover {
+  background: rgb(9, 148, 9);
+
+}
+
+.studentInfo {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 30px;
+}
+
+.studentInfo h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+
+.resultsTable {
+  overflow-x: auto;
+  margin-bottom: 30px;
+}
+
+.resultsTable h2 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.resultsTable table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.resultsTable th {
+  background: rgb(9, 148, 9);
+  color: white;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.resultsTable td {
+  padding: 12px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.passRow {
+  background: #ffffff;
+}
+
+.failRow {
+  background: #ffffff;
+}
+
+.passBadge {
+  background: #4caf50;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.failBadge {
+  background: red;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.legend {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.legend h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.gradeScale {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.gradeA, .gradeB, .gradeC, .gradeD, .gradeF {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+  border-radius: 50%;
+  margin-right: 8px;
+  font-weight: bold;
+  color: white;
+}
+
+.gradeA { background: #fff; }
+.gradeB { background:  #fff; }
+.gradeC { background:  #fff; }
+.gradeD { background:  #fff; }
+.gradeF { background:  #fff }
+
+@media (max-width: 768px) {
+  .summaryGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .resultsTable {
+    font-size: 14px;
+  }
+}
+
+.brand{
+    height: 150px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.brandName{
+    font-size: 24px;
+    font-weight: 100;}
+.portal{
+    font-size: 24px;
+    font-weight: 400;
+}
+.how{
+    color: #4caf50;
+    font-size: 10px;
+}
