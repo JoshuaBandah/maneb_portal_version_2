@@ -1,7 +1,6 @@
-// app/results/page.jsx (or app/exam-results/page.jsx)
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './styles/results.module.css';
 
 export default function ExamResults() {
@@ -10,65 +9,155 @@ export default function ExamResults() {
     const [results, setResults] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [queueInfo, setQueueInfo] = useState(null);
+
+    const abortRef = useRef(false);
+
+    useEffect(() => {
+        return () => {
+            abortRef.current = true;
+        };
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
         setLoading(true);
         setError('');
+        setResults(null);
+        setQueueInfo(null);
+        abortRef.current = false;
 
         try {
-            const response = await fetch(
-                `http://localhost:3000/grades/view-uncached-results?date_of_birth=${dateOfBirth}&student_number=${studentNumber}`
+            const url = new URL(
+                'http://localhost:3000/grades/view-uncached-results'
             );
+
+            url.searchParams.append('date_of_birth', dateOfBirth);
+            url.searchParams.append('student_number', studentNumber);
+
+            const response = await fetch(url);
             const data = await response.json();
 
-            if (data.success) {
-                setResults(data.data);
-            } else {
-                setError('invalid.');
+            if (!response.ok) {
+                setError('Server error');
+                return;
             }
+
+            console.log(response)
+            if (response.status === 202 && data?.data?.jobId) {
+                const { jobId, position, estimatedWaitTime } = data.data;
+
+                setQueueInfo({
+                    jobId,
+                    position,
+                    estimatedWaitTime,
+                    progress: 0,
+                });
+
+                await pollJob(jobId);
+                return;
+            }
+
+            setError('Unexpected response from server');
         } catch (err) {
-            setError('invalid');
+            setError('Something went wrong');
         } finally {
             setLoading(false);
         }
     };
 
+    const pollJob = async (jobId) => {
+        let attempts = 0;
+
+        while (attempts < 30) {
+            if (abortRef.current) return;
+
+            try {
+                const res = await fetch(
+                    `http://localhost:3000/grades/queue/status/${jobId}`
+                );
+
+                const data = await res.json();
+
+                if (abortRef.current) return;
+
+                // update progress if available
+                if (data.progress !== undefined) {
+                    setQueueInfo((prev) => ({
+                        ...prev,
+                        progress: data.progress,
+                    }));
+                }
+
+                if (data.status === 'completed') {
+                    setResults(data.result?.data || null);
+                    setQueueInfo(null);
+                    return;
+                }
+
+                if (data.status === 'failed') {
+                    setError('Processing failed');
+                    setQueueInfo(null);
+                    return;
+                }
+
+                await new Promise((r) => setTimeout(r, 2000));
+                attempts++;
+            } catch (err) {
+                setError('Error checking status');
+                return;
+            }
+        }
+
+        setError('Took too long. Try again.');
+    };
+
     if (results) {
-        return <ResultsDisplay results={results} onBack={() => setResults(null)} />;
+        return (
+            <ResultsDisplay
+                results={results}
+                onBack={() => setResults(null)}
+            />
+        );
     }
 
     return (
         <div className={styles.container}>
-
             <div className={styles.searchCard}>
                 <div className={styles.brand}>
                     <img
-                    src='images.jfif'
-                    alt=''
-                    style={{
-                        width:"100px",
-                        height:'100px',
-                        borderRadius:'50%'
-                    }}/>
+                        src="images.jfif"
+                        alt=""
+                        style={{
+                            width: '100px',
+                            height: '100px',
+                            borderRadius: '50%',
+                        }}
+                    />
+
                     <div className={styles.brandName}>
                         Malawi National Examinations Board
                     </div>
+
                     <div className={styles.portal}>
                         Examination Results Portal
                     </div>
+
                     <div className={styles.how}>
-                        *Enter exam number and date of birth to check results*
+                        *Enter exam number and date of birth*
                     </div>
                 </div>
+
                 <form onSubmit={handleSubmit} className={styles.form}>
                     <div className={styles.formGroup}>
                         <label>Student Number</label>
                         <input
                             type="text"
                             value={studentNumber}
-                            onChange={(e) => setStudentNumber(e.target.value)}
-                            placeholder="Enter your student number"
+                            onChange={(e) =>
+                                setStudentNumber(e.target.value)
+                            }
                             required
                         />
                     </div>
@@ -78,59 +167,58 @@ export default function ExamResults() {
                         <input
                             type="date"
                             value={dateOfBirth}
-                            onChange={(e) => setDateOfBirth(e.target.value)}
+                            onChange={(e) =>
+                                setDateOfBirth(e.target.value)
+                            }
                             required
                         />
                     </div>
 
-                    <button type="submit" disabled={loading} className={styles.button}>
-                        {loading ? 'Checking...' : 'View Results'}
+                    <button
+                        disabled={loading}
+                        className={styles.button}
+                    >
+                        {loading ? 'Processing...' : 'View Results'}
                     </button>
                 </form>
 
-                {error && <div className={styles.error}>{error}</div>}
-            </div>
+                {queueInfo && (
+                    <div className={styles.info}>
+                        <p>Your request is in queue</p>
+                        <p>Position: {queueInfo.position}</p>
+                        <p>
+                            Estimated wait:{' '}
+                            {queueInfo.estimatedWaitTime}s
+                        </p>
+                        <p>Progress: {queueInfo.progress ?? 0}%</p>
+                    </div>
+                )}
 
-            <div className={styles.info}>
-                <p> Enter your correct student number and date of birth as registered</p>
+                {error && (
+                    <div className={styles.error}>{error}</div>
+                )}
             </div>
         </div>
     );
 }
 
-// Results Display Component
+// ================= RESULT DISPLAY =================
+
 function ResultsDisplay({ results, onBack }) {
-    // Define subjects and their grading scales
     const subjects = [
-        { name: 'Accounting', key: 'accounting', grade: getGrade(results.accounting) },
-        { name: 'Agriculture', key: 'agriculture', grade: getGrade(results.agriculture) },
-        { name: 'Bible Knowledge', key: 'bible_knowledge', grade: getGrade(results.bible_knowledge) },
-        { name: 'Biology', key: 'biology', grade: getGrade(results.biology) },
-        { name: 'Business Studies', key: 'business_studies', grade: getGrade(results.business_studies) },
-        { name: 'Chemistry', key: 'chemistry', grade: getGrade(results.chemistry) },
-        { name: 'Chichewa', key: 'chichewa', grade: getGrade(results.chichewa) },
-        { name: 'Computer Studies', key: 'computer_studies', grade: getGrade(results.computer_studies) },
-        { name: 'English', key: 'english', grade: getGrade(results.english) },
-        { name: 'Geography', key: 'geography', grade: getGrade(results.geography) },
-        { name: 'History', key: 'history', grade: getGrade(results.history) },
-        { name: 'Home Economics', key: 'home_economics', grade: getGrade(results.home_economics) },
-        { name: 'Mathematics', key: 'mathematics', grade: getGrade(results.mathematics) },
-        { name: 'Physics', key: 'physics', grade: getGrade(results.physics) },
-        { name: 'Social Studies', key: 'social_studies', grade: getGrade(results.social_studies) },
-        { name: 'Technical Drawing', key: 'technical_drawing', grade: getGrade(results.technical_drawing) },
+        { name: 'Mathematics', key: 'mathematics' },
+        { name: 'English', key: 'english' },
+        { name: 'Biology', key: 'biology' },
+        { name: 'Physics', key: 'physics' },
+        { name: 'Chemistry', key: 'chemistry' },
+        { name: 'Chichewa', key: 'chichewa' },
+        { name: 'Social Studies', key: 'social_studies' },
+        { name: 'History', key: 'history' },
     ];
-
-    // Calculate statistics
-    const passedSubjects = subjects.filter(s => parseInt(results[s.key]) >= 50);
-    const failedSubjects = subjects.filter(s => parseInt(results[s.key]) < 50 && parseInt(results[s.key]) > 0);
-    const notAttempted = subjects.filter(s => results[s.key] === '0' || results[s.key] === null);
-
-    const totalScore = subjects.reduce((sum, s) => sum + (parseInt(results[s.key]) || 0), 0);
-    const averageScore = (totalScore / subjects.filter(s => results[s.key] > 0).length).toFixed(1);
 
     return (
         <div className={styles.resultsContainer}>
-            <button onClick={onBack} className={styles.backButton}>← Back to Search</button>
+            <button onClick={onBack} className={styles.backButton}>Back to Search</button>
 
             {/* Student Information */}
             <div className={styles.studentInfo}>
@@ -139,7 +227,7 @@ function ResultsDisplay({ results, onBack }) {
                     <div><strong>Name:</strong> {results.first_name} {results.middle_name} {results.last_name}</div>
                     <div><strong>Student Number:</strong> {results.student_number}</div>
                     <div><strong>Date of Birth:</strong> {new Date(results.date_of_birth).toLocaleDateString()}</div>
-                    <div><strong>Exam Center:</strong> {results.exam_center.toUpperCase()}</div>
+                    <div><strong>Exam Center:</strong> {results.exam_center.toUpperCase()||""}</div>
                 </div>
             </div>
 
@@ -179,27 +267,17 @@ function ResultsDisplay({ results, onBack }) {
                 </table>
             </div>
 
-            {/* Legend */}
-            <div className={styles.legend}>
-                <h3>Grading Scale</h3>
-                <div className={styles.gradeScale}>
-                    <div><span className={styles.gradeA}>A</span> 75-100% (Distinction)</div>
-                    <div><span className={styles.gradeB}>B</span> 65-74% (Merit)</div>
-                    <div><span className={styles.gradeC}>C</span> 50-64% (Credit)</div>
-                    <div><span className={styles.gradeD}>D</span> 40-49% (Pass)</div>
-                    <div><span className={styles.gradeF}>F</span> 0-39% (Fail)</div>
-                </div>
-            </div>
+
         </div>
     );
 }
 
-// Helper function to get grade based on score
+// ================= HELPERS =================
+
 function getGrade(score) {
-    const numScore = parseInt(score);
-    if (numScore >= 75) return 'A';
-    if (numScore >= 65) return 'B';
-    if (numScore >= 50) return 'C';
-    if (numScore >= 40) return 'D';
+    if (score >= 75) return 'A';
+    if (score >= 65) return 'B';
+    if (score >= 50) return 'C';
+    if (score >= 40) return 'D';
     return 'F';
 }
